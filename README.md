@@ -1,4 +1,4 @@
-# Microservices for snacks from the cinema
+# Microservices for releasesfrom the cinema
 
 <p>
 These microservices simulate an Event-Driven architecture with the help of Kafka. At the moment of registering a premiere, the microservice that is listening to this action is activated, which in this case is the premiere history, in which the record of all the premieres published by the cinema is stored in its own database.
