@@ -8,6 +8,7 @@ app.get('/', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Microservice  Running' });
 });
 
+
 app.use(cors({
   origin: 'https://cinema-platform-743n6.ondigitalocean.app'
 }));

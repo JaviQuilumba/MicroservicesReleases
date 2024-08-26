@@ -1,0 +1,33 @@
+name: Deploy Kafka and Run Docker Compose
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Kafka/**'
+
+jobs:
+  deploy-kafka:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install SSHpass (for password-based SSH)
+        run: sudo apt-get install sshpass
+
+      - name: Deploy Kafka and Run Docker Compose
+        run: |
+          sshpass -p "${{ secrets.DROPLET_PASSWORD }}" ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_IP }} << EOF
+            cd /path/to/Kafka
+            docker-compose down || true
+            docker-compose up -d
+
+            # Wait for Kafka to be up and running
+            sleep 10
+
+            # Create Kafka topic
+            docker exec -it kafka kafka-topics.sh --create --topic newReleaseCreated --bootstrap-server kafka:9093 --partitions 1 --replication-factor 1
+          EOF

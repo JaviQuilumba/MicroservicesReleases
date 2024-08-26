@@ -14,6 +14,7 @@ app.use(cors({
   origin: 'https://cinema-platform-743n6.ondigitalocean.app'
 }));
 
+
 app.use('/movies', movieRouter);
 
 const PORT = process.env.PORT || 4017;
