@@ -14,7 +14,6 @@ app.use(cors({
 
 const kafkaConsumer = require('./kafka/consumer');
 
-
 app.use(express.json());
 app.use('/api', movieRouter); 
 

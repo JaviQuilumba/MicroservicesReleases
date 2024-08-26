@@ -16,7 +16,6 @@ app.use(cors({
 
 app.use('/movies', movieRouter);
 
-
 const PORT = process.env.PORT || 4017;
 app.listen(PORT, () => {
   console.log(`New Releases Service is running on port ${PORT}`);
