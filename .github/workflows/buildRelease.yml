@@ -1,0 +1,70 @@
+name: Deploy Microservices and Kafka to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**/DMicroservicioEstrenos/**'
+      - '**/DMicroservicioEstrenosH/**'
+      - 'Kafka/**'
+
+env:
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  DROPLET_IP: ${{ secrets.DROPLET_IP }}
+  DROPLET_USER: root
+  DROPLET_PASSWORD: ${{ secrets.DROPLET_PASSWORD }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build, tag, and push Docker images
+        run: |
+          services=("DMicroservicioEstrenos" "DMicroservicioEstrenosH")
+          for service in "${services[@]}"; do
+            docker build -t ${{ env.DOCKERHUB_USERNAME }}/$service:latest ./$service
+            docker push ${{ env.DOCKERHUB_USERNAME }}/$service:latest
+          done
+
+      - name: Install SSHpass (for password-based SSH)
+        run: sudo apt-get install sshpass
+
+      - name: Deploy to DigitalOcean Droplet
+        run: |
+          sshpass -p "${{ env.DROPLET_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ env.DROPLET_USER }}@${{ env.DROPLET_IP }} << EOF
+            # Navigate to Kafka folder and start Kafka with Docker Compose
+            cd /path/to/Kafka
+            docker-compose down || true
+            docker-compose up -d
+
+            # Wait for Kafka to be fully up and running
+            sleep 10
+
+            # Create the Kafka topic
+            docker exec -it kafka kafka-topics.sh --create --topic newReleaseCreated --bootstrap-server kafka:9093 --partitions 1 --replication-factor 1
+
+            # Pull the latest Docker images for microservices
+            docker pull ${{ env.DOCKERHUB_USERNAME }}/DMicroservicioEstrenos:latest
+            docker pull ${{ env.DOCKERHUB_USERNAME }}/DMicroservicioEstrenosH:latest
+
+            # Stop and remove existing microservices containers
+            docker stop microservicio-estrenos || true
+            docker rm microservicio-estrenos || true
+            docker stop microservicio-estrenosH || true
+            docker rm microservicio-estrenosH || true
+
+            # Run the microservices containers
+            docker run -d --name microservicio-estrenos -p 4017:4017 ${{ env.DOCKERHUB_USERNAME }}/DMicroservicioEstrenos:latest
+            docker run -d --name microservicio-estrenosH -p 4018:4018 ${{ env.DOCKERHUB_USERNAME }}/DMicroservicioEstrenosH:latest
+          EOF
